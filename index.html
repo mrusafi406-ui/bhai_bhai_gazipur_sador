@@ -51,4 +51,20 @@ input.cell{width:64px;padding:6px;text-align:center;border-radius:6px;border:1px
 .tab-btn{flex:none;padding:8px 13px;border-radius:999px;border:1px solid var(--border);background:var(--card);color:var(--text);font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap;}
 .tab-btn.active{background:var(--brand2);border-color:var(--brand2);color:#fff;}
 </style>
-  </head>
+  </head><body>
+<header>
+<h1>🥤 Bhai Bhai Store — SR প্যানেল</h1>
+<p id="subtitle">লোড হচ্ছে…</p>
+</header>
+<div class="wrap" id="app"></div>
+<div class="foot" id="footlinks"></div>
+<div class="modal-bg" id="pinModal"><div class="modal">
+<h2 style="margin-top:0;font-size:15px;">অ্যাডমিন পাসকোড</h2>
+<input type="number" id="pinInput" placeholder="পাসকোড দিন">
+<button class="btn" id="pinSubmit">প্রবেশ করুন</button>
+<button class="btn secondary" id="pinCancel">বাতিল</button>
+</div></div>
+<script id="state-data" type="application/json">
+{"adminPin":"2580","officers":[{"id":"maruf","name":"Maruf Hossain","targetBDT":1500000,"commissionRate":6},{"id":"raju","name":"Raju Hossain","targetBDT":1200000,"commissionRate":6},{"id":"sumon","name":"Sumon Islam","targetBDT":1000000,"commissionRate":6}],"products":[{"id":"p-up-250ml","name":"P-up 250ml","price":384},{"id":"p-up-750ml","name":"P-up 750ml","price":420},{"id":"p-up-2000ml","name":"P-up 2000ml","price":480},{"id":"maxx-250ml","name":"Maxx 250ml","price":390},{"id":"maxx-500ml","name":"Maxx 500ml","price":690},{"id":"maxx-1000ml","name":"Maxx 1000ml","price":540},{"id":"maxx-2000ml","name":"Maxx 2000ml","price":480},{"id":"lemon-250ml","name":"Lemon 250ml","price":384},{"id":"lemon-400ml","name":"Lemon 400ml","price":432},{"id":"lacchi-80ml","name":"Lacchi 80ml","price":816},{"id":"lacchi-200ml","name":"Lacchi 200ml","price":410.4},{"id":"lacchi-250ml","name":"Lacchi 250ml","price":486},{"id":"drinko-mango","name":"Drinko Mango","price":584.88},{"id":"drinko-330ml","name":"Drinko 330ml","price":699.84},{"id":"d-water-500ml","name":"D. Water 500ml","price":219.84},{"id":"d-water-1000ml","name":"D. Water 1000ml","price":210},{"id":"d-water-2000ml","name":"D. Water 2000ml","price":169.98},{"id":"mjb","name":"Mjb","price":456},{"id":"fazlee-250ml","name":"Fazlee 250ml","price":450},{"id":"fazlee-500ml","name":"Fazlee 500ml","price":819.84},{"id":"fazlee-1000ml","name":"Fazlee 1000ml","price":696},{"id":"mango-pack-150ml","name":"Mango Pack 150ml","price":960},{"id":"power","name":"Power","price":469.92},{"id":"zeera-pani","name":"Zeera pani","price":432},{"id":"jelly-ship","name":"Jelly Ship","price":816},{"id":"lolipop-jar","name":"Lolipop (jar)","price":350},{"id":"coffee-poly","name":"Coffee (poly)","price":408},{"id":"pulse-candy-jar","name":"Pulse candy (jar)","price":255}],"entries":[],"lifting":[],"inventoryOpening":{"p-up-250ml":57.4,"p-up-750ml":163.7,"p-up-2000ml":236.3,"maxx-250ml":129.7,"maxx-500ml":90.7,"maxx-1000ml":1.2,"maxx-2000ml":66,"lemon-250ml":90.5,"lemon-400ml":3.4,"lacchi-80ml":97.5,"lacchi-200ml":89.8,"lacchi-250ml":86.4,"drinko-mango":86.4,"drinko-330ml":86.8,"d-water-500ml":86.8,"d-water-1000ml":180.5,"d-water-2000ml":361,"mjb":90.2,"fazlee-250ml":86.8,"fazlee-500ml":90.5,"fazlee-1000ml":91,"mango-pack-150ml":4.8,"power":86,"zeera-pani":86.8,"jelly-ship":94.2,"lolipop-jar":5.3,"coffee-poly":50.7,"pulse-candy-jar":5.8},"ledger":[],"orders":[]}
+</script>
+<script>
