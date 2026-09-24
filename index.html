@@ -662,6 +662,16 @@
         navigator.serviceWorker.register('service-worker.js').catch(function () {});
       }
     })();
-  </script>
+  </script><script>
+(function(){
+  ...
+  if(sessionStorage.getItem('srAdminUnlocked') === 'yes'){
+    renderAdmin();
+  } else {
+    renderEntry();
+  }
+  renderFootlinks();
+})();
+</script>
 </body>
 </html>
