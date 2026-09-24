@@ -110,4 +110,47 @@ function renderEntry(){
 subtitle.textContent='দৈনিক সেলস ও ড্যামেজ এন্ট্রি';
 var savedOfficer=localStorage.getItem('srOfficerId')||STATE.officers[0].id;
 var savedDate=todayStr();
-app.innerHTML='<div class="card"><h2>অফিসার ও তারিখ</h2><label>আপনার নাম</label><select id="officerSel">'+STATE.officers.map(function(o){return '<option value="'+o.id+'"'+(o.id===savedOfficer?' selected':'')+'>'+o.name+'</option>';}).join('')+'</select><label>তারিখ</label><input type="date" id="dateSel" value="'+savedDate+'"></div><div class="card"><h2>প্রোডাক্ট ভিত্তিক সেলস ও ড্যামেজ (কার্টন)</h2><table><thead><tr><th>প্রোডাক্ট</th><th>সেলস</th><th>ড্যামেজ</th></tr></thead><tbody id="prodRows"></tbody></table><label>আজ মোট অর্ডার (Ctn)</label><input type="number" id="orderInput" min="0" step="0.5"><div id="flashMsg" class="msg"></div><button class="btn" id="saveBtn">💾 সংরক্ষণ করুন</button></div><div class="card" id="bounceCard"></div><div class="card" id="todaySummary"></div>';
+app.innerHTML='<div class="card"><h2>অফিসার ও তারিখ</h2><label>আপনার নাম</label><select id="officerSel">'+STATE.officers.map(function(o){return '<option value="'+o.id+'"'+(o.id===savedOfficer?' selected':'')+'>'+o.name+'</option>';}).join('')+'</select><label>তারিখ</label><input type="date" id="dateSel" value="'+savedDate+'"></div><div class="card"><h2>প্রোডাক্ট ভিত্তিক সেলস ও ড্যামেজ (কার্টন)</h2><table><thead><tr><th>প্রোডাক্ট</th><th>সেলস</th><th>ড্যামেজ</th></tr></thead><tbody id="prodRows"></tbody></table><label>আজ মোট অর্ডার (Ctn)</label><input type="number" id="orderInput" min="0" step="0.5"><div id="flashMsg" class="msg"></div><button class="btn" id="saveBtn">💾 সংরক্ষণ করুন</button></div><div class="card" id="bounceCard"></div><div class="card" id="todaySummary"></div>';function fillRows(){
+var oid=document.getElementById('officerSel').value;
+var date=document.getElementById('dateSel').value;
+document.getElementById('prodRows').innerHTML=STATE.products.map(function(p){
+var rec=null;for(var i=0;i<STATE.entries.length;i++){if(STATE.entries[i].key===entryKey(date,oid,p.id)){rec=STATE.entries[i];break;}}
+return '<tr><td>'+p.name+'</td><td><input class="cell" type="number" min="0" step="0.5" data-p="'+p.id+'" data-f="s" value="'+(rec?rec.salesCtn:'')+'"></td><td><input class="cell" type="number" min="0" step="0.5" data-p="'+p.id+'" data-f="d" value="'+(rec?rec.damageCtn:'')+'"></td></tr>';
+}).join('');
+var ordRec=getOrder(date,oid);
+document.getElementById('orderInput').value=ordRec?ordRec.orderCtn:'';
+renderBounceCard(oid,date);
+renderTodaySummary(oid,date);
+}
+function renderBounceCard(oid,date){
+var b=bounceFor(date,oid);
+if(!b){document.getElementById('bounceCard').innerHTML='<h2>অর্ডার বনাম সেলস</h2><p style="font-size:12px;color:var(--muted);">গতকাল কোনো অর্ডার নেই।</p>';return;}
+var cls=b.bouncePct>0.2?'bad':(b.bouncePct>0.1?'warn':'good');
+document.getElementById('bounceCard').innerHTML='<h2>গতকালের ('+b.orderDate+') অর্ডার বনাম আজকের সেলস</h2><div class="kpis"><div class="kpi"><div class="v">'+fmt(b.orderCtn)+'</div><div class="l">অর্ডার (Ctn)</div></div><div class="kpi"><div class="v">'+fmt(b.bounceCtn)+'</div><div class="l">বাউন্স (Ctn)</div></div><div class="kpi"><div class="v"><span class="pill '+cls+'">'+fmt(b.bouncePct*100)+'%</span></div><div class="l">বাউন্স %</div></div></div>';
+}
+function renderTodaySummary(oid,date){
+var s=0,d=0,v=0;
+STATE.entries.filter(function(e){return e.officerId===oid&&e.date===date;}).forEach(function(e){s+=e.salesCtn;d+=e.damageCtn;var pr=productObj(e.product);v+=e.salesCtn*(pr?pr.price:0);});
+var o=STATE.officers.filter(function(x){return x.id===oid;})[0];
+document.getElementById('todaySummary').innerHTML='<h2>'+date+' — আজকের সারাংশ ('+o.name+')</h2><div class="kpis"><div class="kpi"><div class="v">'+fmt(s)+'</div><div class="l">সেলস (Ctn)</div></div><div class="kpi"><div class="v">৳ '+fmt(v)+'</div><div class="l">সেলস ভ্যালু</div></div><div class="kpi"><div class="v">'+(s>0?fmt(d/s*100)+'%':'-')+'</div><div class="l">ড্যামেজ %</div></div></div>';
+}
+document.getElementById('officerSel').addEventListener('change',function(e){localStorage.setItem('srOfficerId',e.target.value);fillRows();});
+document.getElementById('dateSel').addEventListener('change',fillRows);
+document.getElementById('saveBtn').addEventListener('click',function(){
+var oid=document.getElementById('officerSel').value;
+var date=document.getElementById('dateSel').value;
+if(!date){showMsg('err','তারিখ নির্বাচন করুন।');return;}
+document.querySelectorAll('#prodRows input[data-f="s"]').forEach(function(inp){
+var p=inp.getAttribute('data-p');
+var sv=parseFloat(inp.value)||0;
+var di=document.querySelector('#prodRows input[data-p="'+p+'"][data-f="d"]');
+var dv=parseFloat(di.value)||0;
+if(sv>0||dv>0)upsertEntry(date,oid,p,sv,dv);
+});
+var ov=parseFloat(document.getElementById('orderInput').value)||0;
+upsertOrder(date,oid,ov);
+localStorage.setItem('srOfficerId',oid);
+if(saveState()){showMsg('ok','✅ সংরক্ষণ হয়েছে!');renderBounceCard(oid,date);renderTodaySummary(oid,date);}
+});
+fillRows();
+  }
