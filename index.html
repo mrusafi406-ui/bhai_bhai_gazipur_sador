@@ -238,4 +238,49 @@ if('serviceWorker' in navigator){navigator.serviceWorker.register('service-worke
 })();
 </script>
 </body>
+</html>function commissionHTML(){
+var ym=todayStr().slice(0,7);
+var rows=STATE.officers.map(function(o){var t=monthTotals(o.id,ym);var c=t.sales*(o.commissionRate||0);return '<tr><td>'+o.name+'</td><td>'+fmt(t.sales)+'</td><td><input class="target-input" type="number" min="0" step="0.5" data-crate="'+o.id+'" value="'+(o.commissionRate||0)+'"></td><td>'+fmt(c)+'</td></tr>';}).join('');
+var tc=STATE.officers.reduce(function(s,o){return s+monthTotals(o.id,ym).sales*(o.commissionRate||0);},0);
+return '<div class="card"><h2>কমিশন — '+ym+'</h2><div class="kpis" style="grid-template-columns:1fr;"><div class="kpi"><div class="v">৳ '+fmt(tc)+'</div><div class="l">মোট কমিশন</div></div></div><table style="margin-top:10px;"><thead><tr><th>SR</th><th>সেলস (Ctn)</th><th>রেট</th><th>কমিশন (৳)</th></tr></thead><tbody>'+rows+'</tbody></table><div id="flashMsg" class="msg"></div></div>';
+}
+function ledgerHTML(){
+var bal=ledgerBalance();
+var log=STATE.ledger.slice().sort(function(a,b){return b.ts-a.ts;}).slice(0,30).map(function(l){return '<tr><td>'+l.date+'</td><td><span class="pill '+(l.type==='credit'?'good':'bad')+'">'+(l.type==='credit'?'ক্রেডিট':'ডেবিট')+'</span></td><td>৳ '+fmt(l.amount)+'</td><td>'+(l.note||'-')+'</td></tr>';}).join('')||'<tr><td colspan="4" style="color:var(--muted);">কোনো এন্ট্রি নেই</td></tr>';
+return '<div class="card"><h2>লেজার</h2><div class="kpis" style="grid-template-columns:1fr;"><div class="kpi"><div class="v">৳ '+fmt(bal)+'</div><div class="l">ব্যালেন্স</div></div></div><div class="row-inline" style="margin-top:10px;"><div><label>তারিখ</label><input type="date" id="ledDate" value="'+todayStr()+'"></div><div><label>ধরন</label><select id="ledType"><option value="credit">ক্রেডিট</option><option value="debit">ডেবিট</option></select></div></div><label>পরিমাণ (৳)</label><input type="number" id="ledAmount" min="0"><label>নোট</label><input type="text" id="ledNote"><div id="flashMsg" class="msg"></div><button class="btn" id="ledSave">➕ যোগ করুন</button></div><div class="card"><h2>সাম্প্রতিক লেনদেন</h2><table><thead><tr><th>তারিখ</th><th>ধরন</th><th>পরিমাণ</th><th>নোট</th></tr></thead><tbody>'+log+'</tbody></table></div>';
+}
+function entriesHTML(){
+var rows=STATE.entries.slice().sort(function(a,b){return b.ts-a.ts;}).slice(0,40).map(function(e){var o=STATE.officers.filter(function(x){return x.id===e.officerId;})[0];return '<tr><td>'+e.date+'</td><td>'+(o?o.name:e.officerId)+'</td><td>'+((productObj(e.product)||{}).name||e.product)+'</td><td>'+fmt(e.salesCtn)+'</td><td>'+fmt(e.damageCtn)+'</td></tr>';}).join('')||'<tr><td colspan="5" style="color:var(--muted);">কোনো এন্ট্রি নেই</td></tr>';
+return '<div class="card"><h2>সব এন্ট্রি (শেষ ৪০টি)</h2><table><thead><tr><th>তারিখ</th><th>SR</th><th>প্রোডাক্ট</th><th>সেলস</th><th>ড্যামেজ</th></tr></thead><tbody>'+rows+'</tbody></table></div>';
+}
+function wireTabEvents(){
+document.querySelectorAll('[data-oid]').forEach(function(inp){inp.addEventListener('change',function(){var oid=inp.getAttribute('data-oid');var val=parseFloat(inp.value)||0;STATE.officers.forEach(function(o){if(o.id===oid)o.targetBDT=val;});saveState();renderAdmin();});});
+document.querySelectorAll('[data-inv]').forEach(function(inp){inp.addEventListener('change',function(){var pid=inp.getAttribute('data-inv');STATE.inventoryOpening[pid]=parseFloat(inp.value)||0;saveState();renderAdmin();});});
+document.querySelectorAll('[data-crate]').forEach(function(inp){inp.addEventListener('change',function(){var oid=inp.getAttribute('data-crate');var val=parseFloat(inp.value)||0;STATE.officers.forEach(function(o){if(o.id===oid)o.commissionRate=val;});saveState();renderAdmin();});});
+var ls=document.getElementById('liftSave');
+if(ls)ls.addEventListener('click',function(){var d=document.getElementById('liftDate').value;var p=document.getElementById('liftProduct').value;var q=parseFloat(document.getElementById('liftQty').value)||0;if(!d||q<=0){showMsg('err','সঠিক তথ্য দিন।');return;}STATE.lifting.push({id:uid(),date:d,product:p,qtyCtn:q,ts:Date.now()});saveState();showMsg('ok','✅ যোগ হয়েছে!');renderAdmin();});
+var lds=document.getElementById('ledSave');
+if(lds)lds.addEventListener('click',function(){var d=document.getElementById('ledDate').value;var t=document.getElementById('ledType').value;var a=parseFloat(document.getElementById('ledAmount').value)||0;var n=document.getElementById('ledNote').value.trim();if(!d||a<=0){showMsg('err','সঠিক তথ্য দিন।');return;}STATE.ledger.push({id:uid(),date:d,type:t,amount:a,note:n,ts:Date.now()});saveState();showMsg('ok','✅ যোগ হয়েছে!');renderAdmin();});
+}
+function renderFootlinks(){
+footlinks.innerHTML='<span>© Bhai Bhai Store</span> · <a href="#" id="adminLink">🔐 অ্যাডমিন</a>';
+document.getElementById('adminLink').addEventListener('click',function(e){
+e.preventDefault();
+if(sessionStorage.getItem('srAdminUnlocked')==='yes'){renderAdmin();}
+else{document.getElementById('pinModal').classList.add('show');document.getElementById('pinInput').value='';document.getElementById('pinInput').focus();}
+});
+}
+document.getElementById('pinSubmit').addEventListener('click',function(){
+var pin=document.getElementById('pinInput').value.trim();
+if(pin===String(STATE.adminPin)){sessionStorage.setItem('srAdminUnlocked','yes');document.getElementById('pinModal').classList.remove('show');renderAdmin();renderFootlinks();}
+else{alert('ভুল পাসকোড!');}
+});
+document.getElementById('pinCancel').addEventListener('click',function(){document.getElementById('pinModal').classList.remove('show');});
+document.getElementById('pinInput').addEventListener('keydown',function(e){if(e.key==='Enter')document.getElementById('pinSubmit').click();});
+if(sessionStorage.getItem('srAdminUnlocked')==='yes'){renderAdmin();}else{renderEntry();}
+renderFootlinks();
+if('serviceWorker' in navigator){navigator.serviceWorker.register('service-worker.js').catch(function(){});}
+})();
+</script>
+</body>
 </html>
