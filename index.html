@@ -153,4 +153,44 @@ localStorage.setItem('srOfficerId',oid);
 if(saveState()){showMsg('ok','✅ সংরক্ষণ হয়েছে!');renderBounceCard(oid,date);renderTodaySummary(oid,date);}
 });
 fillRows();
+  }function renderAdmin(){
+subtitle.textContent='অ্যাডমিন ড্যাশবোর্ড';
+app.innerHTML='<div class="tabs" id="tabs">'+[['overview','ওভারভিউ'],['inventory','ইনভেন্টরি'],['lifting','লিফটিং'],['orders','অর্ডার ও বাউন্স'],['commission','কমিশন'],['ledger','লেজার'],['entries','সব এন্ট্রি']].map(function(x){return '<button class="tab-btn '+(adminTab===x[0]?'active':'')+'" data-tab="'+x[0]+'">'+x[1]+'</button>';}).join('')+'</div><div id="tabBody"></div><div class="card"><button class="btn secondary" id="lockBtn">🔒 অ্যাডমিন থেকে বের হন</button></div>';
+document.querySelectorAll('.tab-btn').forEach(function(b){b.addEventListener('click',function(){adminTab=b.getAttribute('data-tab');renderAdmin();});});
+document.getElementById('lockBtn').addEventListener('click',function(){sessionStorage.removeItem('srAdminUnlocked');renderEntry();renderFootlinks();});
+var body=document.getElementById('tabBody');
+if(adminTab==='overview')body.innerHTML=overviewHTML();
+else if(adminTab==='inventory')body.innerHTML=inventoryHTML();
+else if(adminTab==='lifting')body.innerHTML=liftingHTML();
+else if(adminTab==='orders')body.innerHTML=ordersHTML();
+else if(adminTab==='commission')body.innerHTML=commissionHTML();
+else if(adminTab==='ledger')body.innerHTML=ledgerHTML();
+else body.innerHTML=entriesHTML();
+wireTabEvents();
+}
+function overviewHTML(){
+var ym=todayStr().slice(0,7);
+var totals=monthTotals(null,ym);
+var dayPoints=[];
+for(var i=13;i>=0;i--){var d=new Date();d.setDate(d.getDate()-i);var ds=ymd(d);dayPoints.push(STATE.entries.filter(function(e){return e.date===ds;}).reduce(function(s,e){return s+e.salesCtn;},0));}
+var prodData=STATE.products.map(function(p){return {label:p.name,value:productSalesAllTime(p.id)*p.price};}).filter(function(d){return d.value>0;});
+var bars=STATE.officers.map(function(o){var t=monthTotals(o.id,ym);var r=o.targetBDT>0?t.valueBDT/o.targetBDT:0;var pct=Math.min(r,1);var cls=achColor(r);var bc=cls==='good'?'var(--good)':(cls==='warn'?'var(--warn)':'var(--bad)');return '<div class="bar-row"><div class="bar-name">'+o.name+'</div><div class="bar-track"><div class="bar-fill" style="width:'+(pct*100)+'%;background:'+bc+';"></div></div><div class="bar-pct"><span class="pill '+cls+'">'+fmt(r*100)+'%</span></div></div>';}).join('');
+return '<div class="card"><h2>এই মাসের সারাংশ ('+ym+')</h2><div class="kpis"><div class="kpi"><div class="v">'+fmt(totals.sales)+'</div><div class="l">মোট সেলস (Ctn)</div></div><div class="kpi"><div class="v">৳ '+fmt(totals.valueBDT)+'</div><div class="l">সেলস ভ্যালু</div></div><div class="kpi"><div class="v">'+(totals.sales>0?fmt(totals.damage/totals.sales*100)+'%':'-')+'</div><div class="l">ড্যামেজ %</div></div></div></div><div class="card"><h2>SR পারফরম্যান্স</h2>'+bars+'<table style="margin-top:10px;"><thead><tr><th>SR</th><th>টার্গেট (৳)</th></tr></thead><tbody>'+STATE.officers.map(function(o){return '<tr><td>'+o.name+'</td><td><input class="target-input" type="number" min="0" data-oid="'+o.id+'" value="'+o.targetBDT+'"></td></tr>';}).join('')+'</tbody></table><div id="flashMsg" class="msg"></div></div><div class="card"><h2>দৈনিক সেলস ট্রেন্ড (১৪ দিন)</h2>'+lineSVG(dayPoints,300,90)+'</div><div class="card"><h2>প্রোডাক্ট মিক্স (৳)</h2><div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap;">'+donutSVG(prodData)+'<div class="legend">'+prodData.map(function(d,i){return '<span><i class="dot" style="background:'+COLORS[i%COLORS.length]+'"></i>'+d.label+'</span>';}).join('')+'</div></div></div>';
+}
+function inventoryHTML(){
+var rows=STATE.products.map(function(p){
+var stock=currentStock(p.id);var low=stock<10;
+return '<tr><td>'+p.name+'</td><td><input class="target-input" type="number" data-inv="'+p.id+'" value="'+(STATE.inventoryOpening[p.id]||0)+'"></td><td>'+fmt(productLiftedAllTime(p.id))+'</td><td>'+fmt(productSalesAllTime(p.id))+'</td><td>'+fmt(productDamageAllTime(p.id))+'</td><td class="'+(low?'stock-low':'')+'">'+fmt(stock)+(low?' ⚠️':'')+'</td></tr>';
+}).join('');
+return '<div class="card"><h2>ইনভেন্টরি (কার্টন)</h2><table><thead><tr><th>প্রোডাক্ট</th><th>ওপেনিং</th><th>লিফটেড</th><th>সেলস</th><th>ড্যামেজ</th><th>স্টক</th></tr></thead><tbody>'+rows+'</tbody></table><div id="flashMsg" class="msg"></div></div>';
+}
+function liftingHTML(){
+var log=STATE.lifting.slice().sort(function(a,b){return b.ts-a.ts;}).slice(0,30).map(function(l){return '<tr><td>'+l.date+'</td><td>'+((productObj(l.product)||{}).name||l.product)+'</td><td>'+fmt(l.qtyCtn)+'</td></tr>';}).join('')||'<tr><td colspan="3" style="color:var(--muted);">কোনো এন্ট্রি নেই</td></tr>';
+return '<div class="card"><h2>নতুন লিফটিং</h2><label>তারিখ</label><input type="date" id="liftDate" value="'+todayStr()+'"><label>প্রোডাক্ট</label><select id="liftProduct">'+STATE.products.map(function(p){return '<option value="'+p.id+'">'+p.name+'</option>';}).join('')+'</select><label>পরিমাণ (Ctn)</label><input type="number" id="liftQty" min="0" step="0.5"><div id="flashMsg" class="msg"></div><button class="btn" id="liftSave">➕ লিফটিং যোগ করুন</button></div><div class="card"><h2>সাম্প্রতিক লিফটিং</h2><table><thead><tr><th>তারিখ</th><th>প্রোডাক্ট</th><th>Ctn</th></tr></thead><tbody>'+log+'</tbody></table></div>';
+}
+function ordersHTML(){
+var ym=todayStr().slice(0,7);
+var rows=STATE.officers.map(function(o){var ob=monthOrderBounce(o.id,ym);var cls=ob.bouncePct>0.2?'bad':(ob.bouncePct>0.1?'warn':'good');return '<tr><td>'+o.name+'</td><td>'+fmt(ob.orderTotal)+'</td><td>'+fmt(ob.bounceTotal)+'</td><td><span class="pill '+cls+'">'+fmt(ob.bouncePct*100)+'%</span></td></tr>';}).join('');
+var log=STATE.orders.slice().sort(function(a,b){return b.ts-a.ts;}).slice(0,30).map(function(o){var off=STATE.officers.filter(function(x){return x.id===o.officerId;})[0];var sn=salesForDate(nextDateStr(o.date),o.officerId);var b=Math.max(o.orderCtn-sn,0);return '<tr><td>'+o.date+'</td><td>'+(off?off.name:o.officerId)+'</td><td>'+fmt(o.orderCtn)+'</td><td>'+fmt(sn)+'</td><td>'+fmt(b)+'</td></tr>';}).join('')||'<tr><td colspan="5" style="color:var(--muted);">কোনো এন্ট্রি নেই</td></tr>';
+return '<div class="card"><h2>অর্ডার বনাম বাউন্স — '+ym+'</h2><table><thead><tr><th>SR</th><th>মোট অর্ডার</th><th>মোট বাউন্স</th><th>বাউন্স %</th></tr></thead><tbody>'+rows+'</tbody></table></div><div class="card"><h2>সাম্প্রতিক অর্ডার লগ</h2><table><thead><tr><th>তারিখ</th><th>SR</th><th>অর্ডার</th><th>পরের দিন</th><th>বাউন্স</th></tr></thead><tbody>'+log+'</tbody></table></div>';
   }
