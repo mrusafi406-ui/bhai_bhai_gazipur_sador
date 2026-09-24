@@ -67,4 +67,47 @@ input.cell{width:64px;padding:6px;text-align:center;border-radius:6px;border:1px
 <script id="state-data" type="application/json">
 {"adminPin":"2580","officers":[{"id":"maruf","name":"Maruf Hossain","targetBDT":1500000,"commissionRate":6},{"id":"raju","name":"Raju Hossain","targetBDT":1200000,"commissionRate":6},{"id":"sumon","name":"Sumon Islam","targetBDT":1000000,"commissionRate":6}],"products":[{"id":"p-up-250ml","name":"P-up 250ml","price":384},{"id":"p-up-750ml","name":"P-up 750ml","price":420},{"id":"p-up-2000ml","name":"P-up 2000ml","price":480},{"id":"maxx-250ml","name":"Maxx 250ml","price":390},{"id":"maxx-500ml","name":"Maxx 500ml","price":690},{"id":"maxx-1000ml","name":"Maxx 1000ml","price":540},{"id":"maxx-2000ml","name":"Maxx 2000ml","price":480},{"id":"lemon-250ml","name":"Lemon 250ml","price":384},{"id":"lemon-400ml","name":"Lemon 400ml","price":432},{"id":"lacchi-80ml","name":"Lacchi 80ml","price":816},{"id":"lacchi-200ml","name":"Lacchi 200ml","price":410.4},{"id":"lacchi-250ml","name":"Lacchi 250ml","price":486},{"id":"drinko-mango","name":"Drinko Mango","price":584.88},{"id":"drinko-330ml","name":"Drinko 330ml","price":699.84},{"id":"d-water-500ml","name":"D. Water 500ml","price":219.84},{"id":"d-water-1000ml","name":"D. Water 1000ml","price":210},{"id":"d-water-2000ml","name":"D. Water 2000ml","price":169.98},{"id":"mjb","name":"Mjb","price":456},{"id":"fazlee-250ml","name":"Fazlee 250ml","price":450},{"id":"fazlee-500ml","name":"Fazlee 500ml","price":819.84},{"id":"fazlee-1000ml","name":"Fazlee 1000ml","price":696},{"id":"mango-pack-150ml","name":"Mango Pack 150ml","price":960},{"id":"power","name":"Power","price":469.92},{"id":"zeera-pani","name":"Zeera pani","price":432},{"id":"jelly-ship","name":"Jelly Ship","price":816},{"id":"lolipop-jar","name":"Lolipop (jar)","price":350},{"id":"coffee-poly","name":"Coffee (poly)","price":408},{"id":"pulse-candy-jar","name":"Pulse candy (jar)","price":255}],"entries":[],"lifting":[],"inventoryOpening":{"p-up-250ml":57.4,"p-up-750ml":163.7,"p-up-2000ml":236.3,"maxx-250ml":129.7,"maxx-500ml":90.7,"maxx-1000ml":1.2,"maxx-2000ml":66,"lemon-250ml":90.5,"lemon-400ml":3.4,"lacchi-80ml":97.5,"lacchi-200ml":89.8,"lacchi-250ml":86.4,"drinko-mango":86.4,"drinko-330ml":86.8,"d-water-500ml":86.8,"d-water-1000ml":180.5,"d-water-2000ml":361,"mjb":90.2,"fazlee-250ml":86.8,"fazlee-500ml":90.5,"fazlee-1000ml":91,"mango-pack-150ml":4.8,"power":86,"zeera-pani":86.8,"jelly-ship":94.2,"lolipop-jar":5.3,"coffee-poly":50.7,"pulse-candy-jar":5.8},"ledger":[],"orders":[]}
 </script>
-<script>
+<script>(function(){
+var STATE=JSON.parse(document.getElementById('state-data').textContent);
+var app=document.getElementById('app');
+var subtitle=document.getElementById('subtitle');
+var footlinks=document.getElementById('footlinks');
+var COLORS=['#2e75b6','#c00000','#548235','#bf8f00','#7030a0','#c55a11','#1f4e78','#548bb8','#e06666','#93c47d','#ffd966','#8e7cc3','#f6b26b','#76a5af','#a64d79'];
+var adminTab='overview';
+try{
+var saved=localStorage.getItem('bhaibhai_state');
+if(saved){var parsed=JSON.parse(saved);for(var k in parsed){STATE[k]=parsed[k];}}
+}catch(e){}
+function saveState(){try{localStorage.setItem('bhaibhai_state',JSON.stringify(STATE));return true;}catch(e){showMsg('err','সংরক্ষণ ব্যর্থ');return false;}}
+function todayStr(){var d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
+function monthKey(s){return (s||'').slice(0,7);}
+function fmt(n){return (Math.round((n||0)*10)/10).toLocaleString('en-US');}
+function entryKey(d,o,p){return d+'__'+o+'__'+p;}
+function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2,7);}
+function productObj(id){for(var i=0;i<STATE.products.length;i++){if(STATE.products[i].id===id)return STATE.products[i];}return null;}
+function upsertEntry(date,officerId,product,sales,damage){var key=entryKey(date,officerId,product);var idx=-1;for(var i=0;i<STATE.entries.length;i++){if(STATE.entries[i].key===key){idx=i;break;}}var rec={key:key,date:date,officerId:officerId,product:product,salesCtn:sales||0,damageCtn:damage||0,ts:Date.now()};if(idx>=0)STATE.entries[idx]=rec;else STATE.entries.push(rec);}
+function monthTotals(officerId,ym){var sales=0,damage=0,valueBDT=0;STATE.entries.forEach(function(e){if(monthKey(e.date)===ym&&(!officerId||e.officerId===officerId)){sales+=e.salesCtn;damage+=e.damageCtn;var pr=productObj(e.product);valueBDT+=e.salesCtn*(pr?pr.price:0);}});return {sales:sales,damage:damage,valueBDT:valueBDT};}
+function productSalesAllTime(p){return STATE.entries.filter(function(e){return e.product===p;}).reduce(function(s,e){return s+e.salesCtn;},0);}
+function productDamageAllTime(p){return STATE.entries.filter(function(e){return e.product===p;}).reduce(function(s,e){return s+e.damageCtn;},0);}
+function productLiftedAllTime(p){return STATE.lifting.filter(function(l){return l.product===p;}).reduce(function(s,l){return s+l.qtyCtn;},0);}
+function currentStock(p){return (STATE.inventoryOpening[p]||0)+productLiftedAllTime(p)-productSalesAllTime(p)-productDamageAllTime(p);}
+function achColor(p){return p>=0.8?'good':(p>=0.5?'warn':'bad');}
+function ledgerBalance(){var b=0;STATE.ledger.forEach(function(l){b+=(l.type==='credit'?l.amount:-l.amount);});return b;}
+function ymd(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
+function prevDateStr(s){var d=new Date(s+'T00:00:00');d.setDate(d.getDate()-1);return ymd(d);}
+function nextDateStr(s){var d=new Date(s+'T00:00:00');d.setDate(d.getDate()+1);return ymd(d);}
+function orderKey(d,o){return d+'__'+o;}
+function getOrder(d,o){return STATE.orders.filter(function(x){return x.key===orderKey(d,o);})[0];}
+function upsertOrder(date,officerId,qty){var key=orderKey(date,officerId);var idx=-1;for(var i=0;i<STATE.orders.length;i++){if(STATE.orders[i].key===key){idx=i;break;}}if(qty>0){var rec={key:key,date:date,officerId:officerId,orderCtn:qty,ts:Date.now()};if(idx>=0)STATE.orders[idx]=rec;else STATE.orders.push(rec);}else if(idx>=0)STATE.orders.splice(idx,1);}
+function salesForDate(d,o){return STATE.entries.filter(function(e){return e.date===d&&e.officerId===o;}).reduce(function(s,e){return s+e.salesCtn;},0);}
+function bounceFor(date,officerId){var prev=prevDateStr(date);var ord=getOrder(prev,officerId);if(!ord||ord.orderCtn<=0)return null;var st=salesForDate(date,officerId);var b=Math.max(ord.orderCtn-st,0);return {orderDate:prev,orderCtn:ord.orderCtn,salesCtn:st,bounceCtn:b,bouncePct:b/ord.orderCtn};}
+function monthOrderBounce(officerId,ym){var ot=0,bt=0;STATE.orders.filter(function(o){return o.officerId===officerId&&monthKey(o.date)===ym;}).forEach(function(o){var sn=salesForDate(nextDateStr(o.date),officerId);ot+=o.orderCtn;bt+=Math.max(o.orderCtn-sn,0);});return {orderTotal:ot,bounceTotal:bt,bouncePct:ot>0?bt/ot:0};}
+var msgTimer=null;
+function showMsg(type,text){var m=document.getElementById('flashMsg');if(!m)return;m.textContent=text;m.className='msg show '+type;clearTimeout(msgTimer);msgTimer=setTimeout(function(){m.classList.remove('show');},3500);}
+function donutSVG(dataArr){var total=dataArr.reduce(function(s,d){return s+d.value;},0)||1;var r=54,cx=64,cy=64,circ=2*Math.PI*r;var offset=0,segs='';dataArr.forEach(function(d,i){var len=(d.value/total)*circ;segs+='<circle cx="'+cx+'" cy="'+cy+'" r="'+r+'" fill="none" stroke="'+COLORS[i%COLORS.length]+'" stroke-width="18" stroke-dasharray="'+len+' '+(circ-len)+'" stroke-dashoffset="'+(-offset)+'" transform="rotate(-90 '+cx+' '+cy+')"/>';offset+=len;});return '<svg viewBox="0 0 128 128" style="width:150px;height:150px;flex:none;">'+segs+'</svg>';}
+function lineSVG(points,w,h){if(!points.length)return '';var max=Math.max.apply(null,points.concat([1]));var stepX=w/Math.max(points.length-1,1);var pts=points.map(function(v,i){return (i*stepX).toFixed(1)+','+(h-(v/max*h*0.9)-4).toFixed(1);}).join(' ');var dots=points.map(function(v,i){return '<circle cx="'+(i*stepX).toFixed(1)+'" cy="'+(h-(v/max*h*0.9)-4).toFixed(1)+'" r="2.4" fill="var(--brand2)"/>';}).join('');return '<svg viewBox="0 0 '+w+' '+h+'" style="width:100%;height:'+h+'px;"><polyline points="'+pts+'" fill="none" stroke="var(--brand2)" stroke-width="2.2"/>'+dots+'</svg>';}
+function renderEntry(){
+subtitle.textContent='দৈনিক সেলস ও ড্যামেজ এন্ট্রি';
+var savedOfficer=localStorage.getItem('srOfficerId')||STATE.officers[0].id;
+var savedDate=todayStr();
+app.innerHTML='<div class="card"><h2>অফিসার ও তারিখ</h2><label>আপনার নাম</label><select id="officerSel">'+STATE.officers.map(function(o){return '<option value="'+o.id+'"'+(o.id===savedOfficer?' selected':'')+'>'+o.name+'</option>';}).join('')+'</select><label>তারিখ</label><input type="date" id="dateSel" value="'+savedDate+'"></div><div class="card"><h2>প্রোডাক্ট ভিত্তিক সেলস ও ড্যামেজ (কার্টন)</h2><table><thead><tr><th>প্রোডাক্ট</th><th>সেলস</th><th>ড্যামেজ</th></tr></thead><tbody id="prodRows"></tbody></table><label>আজ মোট অর্ডার (Ctn)</label><input type="number" id="orderInput" min="0" step="0.5"><div id="flashMsg" class="msg"></div><button class="btn" id="saveBtn">💾 সংরক্ষণ করুন</button></div><div class="card" id="bounceCard"></div><div class="card" id="todaySummary"></div>';
